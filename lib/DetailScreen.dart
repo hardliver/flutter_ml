@@ -58,6 +58,21 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  Future labelBarCode() async {
+    result = '';
+    FirebaseVisionImage myImage = FirebaseVisionImage.fromFile(pickedImage);
+    ImageLabeler labeler = FirebaseVision.instance.imageLabeler();
+    List labels = await labeler.processImage(myImage);
+
+    for (ImageLabel label in labels) {
+      final String text = label.text;
+      final double confidence = label.confidence;
+      setState(() {
+        result += '$text     -     $confidence\n';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     selectedItem = ModalRoute.of(context).settings.arguments.toString();
@@ -101,7 +116,8 @@ class _DetailScreenState extends State<DetailScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         // onPressed: readTextfromanImage,
-        onPressed: decodeBarCode,
+        // onPressed: decodeBarCode,
+        onPressed: labelBarCode,
         child: Icon(Icons.check),
       ),
     );
