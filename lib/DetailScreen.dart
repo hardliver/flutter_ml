@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_ml_vision/firebase_ml_vision.dart';
 
 class DetailScreen extends StatefulWidget {
   @override
@@ -14,6 +15,8 @@ class _DetailScreenState extends State<DetailScreen> {
   File pickedImage;
   var imageFile;
 
+  var result = '';
+
   bool isImageLoaded = false;
 
   getImageFromGallery() async {
@@ -23,6 +26,23 @@ class _DetailScreenState extends State<DetailScreen> {
       pickedImage = File(tempStore.path);
       isImageLoaded = true;
     });
+  }
+
+  readTextfromanImage() async {
+    result = '';
+    FirebaseVisionImage myImage = FirebaseVisionImage.fromFile(pickedImage);
+    TextRecognizer recognizeText = FirebaseVision.instance.textRecognizer();
+    VisionText readText = await recognizeText.processImage(myImage);
+
+    for (TextBlock block in readText.blocks) {
+      for (TextLine line in block.lines) {
+        for (TextElement word in line.elements) {
+          setState(() {
+            result += ' ' + word.text;
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -58,11 +78,16 @@ class _DetailScreenState extends State<DetailScreen> {
                     )),
                   ),
                 )
-              : Container()
+              : Container(),
+          SizedBox(height: 30.0),
+          Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(result),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: readTextfromanImage,
         child: Icon(Icons.check),
       ),
     );
