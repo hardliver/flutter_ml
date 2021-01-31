@@ -100,6 +100,23 @@ class _DetailScreenState extends State<DetailScreen> {
     });
   }
 
+  void detectMLFeature(String selectedFeature) {
+    switch (selectedFeature) {
+      case 'Text Scanner':
+        readTextfromanImage();
+        break;
+      case 'Barcode Scanner':
+        decodeBarCode();
+        break;
+      case 'Label Scanner':
+        labelBarCode();
+        break;
+      case 'Face Detection':
+        detectFace();
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     selectedItem = ModalRoute.of(context).settings.arguments.toString();
@@ -155,10 +172,9 @@ class _DetailScreenState extends State<DetailScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        // onPressed: readTextfromanImage,
-        // onPressed: decodeBarCode,
-        // onPressed: labelBarCode,
-        onPressed: detectFace,
+        onPressed: () {
+          detectMLFeature(selectedItem);
+        },
         child: Icon(Icons.check),
       ),
     );
