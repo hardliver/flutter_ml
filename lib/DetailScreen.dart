@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_ml_vision/firebase_ml_vision.dart';
@@ -18,13 +18,22 @@ class _DetailScreenState extends State<DetailScreen> {
   var result = '';
 
   bool isImageLoaded = false;
+  bool isFaceDetected = false;
+
+  List<Rect> rect = new List<Rect>();
 
   getImageFromGallery() async {
     var tempStore = await ImagePicker().getImage(source: ImageSource.gallery);
 
+    imageFile = await tempStore.readAsBytes();
+    imageFile = await decodeImageFromList(imageFile);
+
     setState(() {
       pickedImage = File(tempStore.path);
       isImageLoaded = true;
+      isFaceDetected = false;
+
+      imageFile = imageFile;
     });
   }
 
@@ -73,6 +82,24 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  Future detectFace() async {
+    FirebaseVisionImage myImage = FirebaseVisionImage.fromFile(pickedImage);
+    FaceDetector faceDetector = FirebaseVision.instance.faceDetector();
+    List<Face> faces = await faceDetector.processImage(myImage);
+
+    if (rect.length > 0) {
+      rect = new List<Rect>();
+    }
+
+    for (Face face in faces) {
+      rect.add(face.boundingBox);
+    }
+
+    setState(() {
+      isFaceDetected = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     selectedItem = ModalRoute.of(context).settings.arguments.toString();
@@ -94,19 +121,32 @@ class _DetailScreenState extends State<DetailScreen> {
       body: Column(
         children: [
           SizedBox(height: 100),
-          isImageLoaded
+          isImageLoaded && !isFaceDetected
               ? Center(
                   child: Container(
                     height: 250.0,
                     width: 250.0,
                     decoration: BoxDecoration(
                         image: DecorationImage(
-                      image: FileImage(pickedImage),
-                      fit: BoxFit.cover,
-                    )),
+                            image: FileImage(pickedImage), fit: BoxFit.cover)),
                   ),
                 )
-              : Container(),
+              : isImageLoaded && isFaceDetected
+                  ? Center(
+                      child: Container(
+                        child: FittedBox(
+                          child: SizedBox(
+                            width: imageFile.width.toDouble(),
+                            height: imageFile.height.toDouble(),
+                            child: CustomPaint(
+                              painter:
+                                  FacePainter(rect: rect, imageFile: imageFile),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Container(),
           SizedBox(height: 30.0),
           Padding(
             padding: EdgeInsets.all(16.0),
@@ -117,9 +157,39 @@ class _DetailScreenState extends State<DetailScreen> {
       floatingActionButton: FloatingActionButton(
         // onPressed: readTextfromanImage,
         // onPressed: decodeBarCode,
-        onPressed: labelBarCode,
+        // onPressed: labelBarCode,
+        onPressed: detectFace,
         child: Icon(Icons.check),
       ),
     );
+  }
+}
+
+class FacePainter extends CustomPainter {
+  List<Rect> rect;
+  var imageFile;
+
+  FacePainter({@required this.rect, @required this.imageFile});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (imageFile != null) {
+      canvas.drawImage(imageFile, Offset.zero, Paint());
+    }
+
+    for (Rect rectange in rect) {
+      canvas.drawRect(
+        rectange,
+        Paint()
+          ..color = Colors.teal
+          ..strokeWidth = 6.0
+          ..style = PaintingStyle.stroke,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    throw UnimplementedError();
   }
 }
